@@ -41,11 +41,16 @@ set(
 
 add_executable(${PROJECT} ${SRC})
 
+find_package(kissfft CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 find_package(tools CONFIG REQUIRED)
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Charts Widgets)
 
 target_link_libraries(
     ${PROJECT}
+    PRIVATE kissfft::kissfft-float
+    PRIVATE Qt::Charts
     PRIVATE Qt::Widgets
     PRIVATE tools-sdl
+    PRIVATE spdlog::spdlog
 )

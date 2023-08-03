@@ -2,6 +2,7 @@
   "name": "waveform-generator",
   "version": "1.0.0",
   "dependencies": [
+    "kissfft",
     "qtbase",
     "qtcharts",
     "tools"

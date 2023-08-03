@@ -24,6 +24,10 @@ private:
     std::unique_ptr<Ui::MainWindow> _ui;
     tools::sdl::SoundPlayer _sound_player;
     bool _playing = false;
+
+    void init_chart();
+
+    std::vector<double> fft(std::vector<double> samples);
 };
 
 #endif // MAINWINDOW_HPP
