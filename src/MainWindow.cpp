@@ -1,12 +1,14 @@
 #include "MainWindow.hpp"
 #include "ui_MainWindow.h"
 
-#include "QChart"
 #include "QChartView"
 #include "QLineSeries"
 
 #include "kissfft/kiss_fftr.h"
 #include "spdlog/spdlog.h"
+
+#include "tools/waveform/Constants.hpp"
+#include "tools/waveform/Waveforms.hpp"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -16,16 +18,12 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     _ui->setupUi(this);
 
-    for (int i = 1 ; i <= 10 ; i++) {
-        int j = i * 2 - 1;
-        // spdlog::info("i = {} ; j = {}", i, j);
-        auto sin = std::make_shared<tools::waveform::Sinus>();
-        sin->set_frequency(440 * j);
-        sin->set_volume(1.0 / j);
-        _waveform_generator->add_waveform(sin);
-    }
+    _waveforms.emplace_back(std::make_shared<tools::waveform::Sinus>());
+    _waveform_generator->add_waveform(_waveforms.back());
 
-    init_chart();
+    init_charts();
+    update_charts();
+    update_harmonics_buttons();
 }
 
 MainWindow::~MainWindow() {}
@@ -41,13 +39,66 @@ void MainWindow::on_play_pause_pushButton_clicked() {
     }
 }
 
-void MainWindow::init_chart() {
+void MainWindow::on_add_harmonic_pushButton_clicked() {
+    _sound_player.pause();
+    auto waveform = std::make_shared<tools::waveform::Sinus>();
+    waveform->set_frequency(440.0 * (2 * _waveforms.size() + 1));
+    waveform->set_volume(1.0 / (2 * _waveforms.size() + 1));
+
+    _waveforms.push_back(waveform);
+    _waveform_generator->add_waveform(_waveforms.back());
+
+    _waveform_generator->reset_samples();
+    update_charts();
+    _sound_player.play();
+
+    update_harmonics_buttons();
+}
+
+void MainWindow::on_remove_harmonic_pushButton_clicked() {
+    _sound_player.pause();
+    _waveform_generator->remove_waveform(_waveforms.back());
+    _waveforms.pop_back();
+
+    _waveform_generator->reset_samples();
+    update_charts();
+    _sound_player.play();
+
+    update_harmonics_buttons();
+}
+
+void MainWindow::update_harmonics_buttons() {
+    _ui->add_harmonic_pushButton->setDisabled(_waveforms.size() >= 6);
+    _ui->remove_harmonic_pushButton->setDisabled(_waveforms.size() == 1);
+}
+
+void MainWindow::init_charts() {
+    _time_chart = new QChart;
+    _freq_chart = new QChart;
+
+    auto chart_view = new QChartView(_time_chart, this);
+    chart_view->setRenderHint(QPainter::Antialiasing);
+
+    auto chart_view2 = new QChartView(_freq_chart, this);
+    chart_view2->setRenderHint(QPainter::Antialiasing);
+
+    _ui->charts_layout->addWidget(chart_view);
+    _ui->charts_layout->addWidget(chart_view2);
+}
+
+void MainWindow::update_charts() {
+    _time_chart->removeAllSeries();
+    _freq_chart->removeAllSeries();
+
     auto samples = _waveform_generator->generate_n_samples(100);
     auto fft_output = fft(samples);
 
     auto series = new QLineSeries;
     for (int i = 0 ; i < samples.size() ; i++) {
-        series->append(i, samples[i]);
+        series->append(
+            static_cast<double>(i) / static_cast<double>(tools::waveform::sampling_rate),
+            samples[i]
+        );
     }
 
     auto series2 = new QLineSeries;
@@ -56,24 +107,15 @@ void MainWindow::init_chart() {
         series2->append(freq, fft_output[i]);
     }
 
-    auto chart = new QChart;
-    chart->addSeries(series);
-    chart->legend()->hide();
-    chart->createDefaultAxes();
+    _time_chart->addSeries(series);
+    _time_chart->legend()->hide();
+    _time_chart->createDefaultAxes();
+    _time_chart->axisX()->setMin(0);
+    _time_chart->axisX()->setMax(1.0 / 440.0);
 
-    auto chart_view = new QChartView(chart, this);
-    chart_view->setRenderHint(QPainter::Antialiasing);
-
-    auto chart2 = new QChart;
-    chart2->addSeries(series2);
-    chart2->legend()->hide();
-    chart2->createDefaultAxes();
-
-    auto chart_view2 = new QChartView(chart2, this);
-    chart_view2->setRenderHint(QPainter::Antialiasing);
-
-    _ui->charts_layout->addWidget(chart_view);
-    _ui->charts_layout->addWidget(chart_view2);
+    _freq_chart->addSeries(series2);
+    _freq_chart->legend()->hide();
+    _freq_chart->createDefaultAxes();
 }
 
 std::vector<double> MainWindow::fft(std::vector<double> samples) {
@@ -90,7 +132,6 @@ std::vector<double> MainWindow::fft(std::vector<double> samples) {
 
     std::vector<double> ret;
     for (int i = 0 ; i < size ; i++) {
-        spdlog::info("{}, {}", fft_output[i].r, fft_output[i].i);
         ret.push_back(sqrt(pow(fft_output[i].r, 2) + pow(fft_output[i].i, 2)));
     }
 
