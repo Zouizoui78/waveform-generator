@@ -2,7 +2,11 @@
 #define MAINWINDOW_HPP
 
 #include "QMainWindow"
-#include "tools/sdl/Sound.hpp"
+
+#include "tools/sdl/WaveformPlayer.hpp"
+#include "tools/waveform/WaveformGenerator.hpp"
+#include "tools/waveform/Waveforms.hpp"
+
 #undef main
 
 namespace Ui {
@@ -22,8 +26,9 @@ private slots:
 
 private:
     std::unique_ptr<Ui::MainWindow> _ui;
-    tools::sdl::SoundPlayer _sound_player;
-    bool _playing = false;
+
+    tools::sdl::WaveformPlayer _sound_player;
+    std::shared_ptr<tools::waveform::WaveformGenerator> _waveform_generator;
 
     void init_chart();
 

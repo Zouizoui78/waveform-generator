@@ -10,17 +10,19 @@
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    _ui(std::make_unique<Ui::MainWindow>())
+    _ui(std::make_unique<Ui::MainWindow>()),
+    _waveform_generator(std::make_shared<tools::waveform::WaveformGenerator>()),
+    _sound_player(_waveform_generator)
 {
     _ui->setupUi(this);
 
     for (int i = 1 ; i <= 10 ; i++) {
         int j = i * 2 - 1;
         // spdlog::info("i = {} ; j = {}", i, j);
-        auto sin = std::make_shared<tools::sdl::Sinus>();
+        auto sin = std::make_shared<tools::waveform::Sinus>();
         sin->set_frequency(440 * j);
         sin->set_volume(1.0 / j);
-        _sound_player.add_sound(sin);
+        _waveform_generator->add_waveform(sin);
     }
 
     init_chart();
@@ -29,7 +31,7 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow() {}
 
 void MainWindow::on_play_pause_pushButton_clicked() {
-    if (_playing) {
+    if (_sound_player.is_playing()) {
         _sound_player.pause();
         _ui->play_pause_pushButton->setText("Play");
     }
@@ -37,11 +39,10 @@ void MainWindow::on_play_pause_pushButton_clicked() {
         _sound_player.play();
         _ui->play_pause_pushButton->setText("Pause");
     }
-    _playing = !_playing;
 }
 
 void MainWindow::init_chart() {
-    auto samples = _sound_player.synthesize_n_samples(100);
+    auto samples = _waveform_generator->generate_n_samples(100);
     auto fft_output = fft(samples);
 
     auto series = new QLineSeries;
