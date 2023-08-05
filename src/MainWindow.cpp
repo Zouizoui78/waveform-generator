@@ -40,7 +40,11 @@ void MainWindow::on_play_pause_pushButton_clicked() {
 }
 
 void MainWindow::on_add_harmonic_pushButton_clicked() {
-    _sound_player.pause();
+    bool was_playing = _sound_player.is_playing();
+    if (was_playing) {
+        _sound_player.pause();
+    }
+
     auto waveform = std::make_shared<tools::waveform::Sinus>();
     waveform->set_frequency(440.0 * (2 * _waveforms.size() + 1));
     waveform->set_volume(1.0 / (2 * _waveforms.size() + 1));
@@ -50,21 +54,32 @@ void MainWindow::on_add_harmonic_pushButton_clicked() {
 
     _waveform_generator->reset_samples();
     update_charts();
-    _sound_player.play();
 
     update_harmonics_buttons();
+
+    if (was_playing) {
+        _sound_player.play();
+    }
 }
 
 void MainWindow::on_remove_harmonic_pushButton_clicked() {
+    bool was_playing = _sound_player.is_playing();
+    if (was_playing) {
+        _sound_player.pause();
+    }
+
     _sound_player.pause();
     _waveform_generator->remove_waveform(_waveforms.back());
     _waveforms.pop_back();
 
     _waveform_generator->reset_samples();
     update_charts();
-    _sound_player.play();
 
     update_harmonics_buttons();
+
+    if (was_playing) {
+        _sound_player.play();
+    }
 }
 
 void MainWindow::update_harmonics_buttons() {
