@@ -27,8 +27,8 @@ private slots:
 private:
     std::unique_ptr<Ui::MainWindow> _ui;
 
-    tools::sdl::WaveformPlayer _sound_player;
     std::shared_ptr<tools::waveform::WaveformGenerator> _waveform_generator;
+    tools::sdl::WaveformPlayer _sound_player;
 
     void init_chart();
 
