@@ -6,7 +6,21 @@
     {
       "name": "qtbase",
       "default-features": false,
-      "features": ["default-features", "widgets"]
+      "features": [
+        "widgets"
+      ],
+      "platform": "windows"
+    },
+    {
+      "name": "qtbase",
+      "default-features": false,
+      "features": [
+        "fontconfig",
+        "png",
+        "widgets",
+        "xcb"
+      ],
+      "platform": "linux"
     },
     "qtcharts",
     "tools"
