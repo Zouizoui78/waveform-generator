@@ -28,7 +28,7 @@ private slots:
     void on_remove_harmonic_pushButton_clicked();
 
     void update_charts();
-    void update_harmonics_buttons();
+    void update_harmonics_groupbox();
     void update_ui();
 
 private:

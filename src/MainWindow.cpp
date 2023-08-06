@@ -22,8 +22,7 @@ MainWindow::MainWindow(QWidget *parent) :
     _waveform_generator->add_waveform(_waveforms.back());
 
     init_charts();
-    update_charts();
-    update_harmonics_buttons();
+    update_ui();
 }
 
 MainWindow::~MainWindow() {}
@@ -100,13 +99,16 @@ void MainWindow::update_charts() {
     _freq_chart->createDefaultAxes();
 }
 
-void MainWindow::update_harmonics_buttons() {
+void MainWindow::update_harmonics_groupbox() {
+    double next_harmonic_freq = _waveforms.front()->get_frequency() * (_waveforms.size() + 1);
+    _ui->add_harmonic_pushButton->setDisabled(next_harmonic_freq > tools::waveform::nyquist_frequency);
     _ui->remove_harmonic_pushButton->setDisabled(_waveforms.size() == 1);
+    _ui->harmonics_count_label->setText(QString::number(_waveforms.size()));
 }
 
 void MainWindow::update_ui() {
     update_charts();
-    update_harmonics_buttons();
+    update_harmonics_groupbox();
 }
 
 void MainWindow::init_charts() {
