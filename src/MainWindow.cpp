@@ -40,11 +40,6 @@ void MainWindow::on_play_pause_pushButton_clicked() {
 }
 
 void MainWindow::on_add_harmonic_pushButton_clicked() {
-    bool was_playing = _sound_player.is_playing();
-    if (was_playing) {
-        _sound_player.pause();
-    }
-
     auto waveform = std::make_shared<tools::waveform::Sinus>();
     waveform->set_frequency(440.0 * (2 * _waveforms.size() + 1));
     waveform->set_volume(1.0 / (2 * _waveforms.size() + 1));
@@ -52,60 +47,32 @@ void MainWindow::on_add_harmonic_pushButton_clicked() {
     _waveforms.push_back(waveform);
     _waveform_generator->add_waveform(_waveforms.back());
 
-    _waveform_generator->reset_samples();
-    update_charts();
-
-    update_harmonics_buttons();
-
-    if (was_playing) {
-        _sound_player.play();
-    }
+    update_ui();
 }
 
 void MainWindow::on_remove_harmonic_pushButton_clicked() {
-    bool was_playing = _sound_player.is_playing();
-    if (was_playing) {
-        _sound_player.pause();
-    }
-
-    _sound_player.pause();
     _waveform_generator->remove_waveform(_waveforms.back());
     _waveforms.pop_back();
 
-    _waveform_generator->reset_samples();
-    update_charts();
-
-    update_harmonics_buttons();
-
-    if (was_playing) {
-        _sound_player.play();
-    }
-}
-
-void MainWindow::update_harmonics_buttons() {
-    _ui->add_harmonic_pushButton->setDisabled(_waveforms.size() >= 6);
-    _ui->remove_harmonic_pushButton->setDisabled(_waveforms.size() == 1);
-}
-
-void MainWindow::init_charts() {
-    _time_chart = new QChart;
-    _freq_chart = new QChart;
-
-    auto chart_view = new QChartView(_time_chart, this);
-    chart_view->setRenderHint(QPainter::Antialiasing);
-
-    auto chart_view2 = new QChartView(_freq_chart, this);
-    chart_view2->setRenderHint(QPainter::Antialiasing);
-
-    _ui->charts_layout->addWidget(chart_view);
-    _ui->charts_layout->addWidget(chart_view2);
+    update_ui();
 }
 
 void MainWindow::update_charts() {
     _time_chart->removeAllSeries();
     _freq_chart->removeAllSeries();
 
+    bool was_playing = _sound_player.is_playing();
+    if (was_playing) {
+        _sound_player.pause();
+    }
+
+    _waveform_generator->reset_samples();
     auto samples = _waveform_generator->generate_n_samples(100);
+
+    if (was_playing) {
+        _sound_player.play();
+    }
+
     auto fft_output = fft(samples);
 
     auto series = new QLineSeries;
@@ -125,12 +92,36 @@ void MainWindow::update_charts() {
     _time_chart->addSeries(series);
     _time_chart->legend()->hide();
     _time_chart->createDefaultAxes();
-    _time_chart->axisX()->setMin(0);
-    _time_chart->axisX()->setMax(1.0 / 440.0);
+    _time_chart->axes()[0]->setMin(0);
+    _time_chart->axes()[0]->setMax(1.0 / 440.0);
 
     _freq_chart->addSeries(series2);
     _freq_chart->legend()->hide();
     _freq_chart->createDefaultAxes();
+}
+
+void MainWindow::update_harmonics_buttons() {
+    _ui->add_harmonic_pushButton->setDisabled(_waveforms.size() >= 6);
+    _ui->remove_harmonic_pushButton->setDisabled(_waveforms.size() == 1);
+}
+
+void MainWindow::update_ui() {
+    update_charts();
+    update_harmonics_buttons();
+}
+
+void MainWindow::init_charts() {
+    _time_chart = new QChart;
+    _freq_chart = new QChart;
+
+    auto chart_view = new QChartView(_time_chart, this);
+    chart_view->setRenderHint(QPainter::Antialiasing);
+
+    auto chart_view2 = new QChartView(_freq_chart, this);
+    chart_view2->setRenderHint(QPainter::Antialiasing);
+
+    _ui->charts_layout->addWidget(chart_view);
+    _ui->charts_layout->addWidget(chart_view2);
 }
 
 std::vector<double> MainWindow::fft(std::vector<double> samples) {

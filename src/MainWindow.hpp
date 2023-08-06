@@ -27,6 +27,10 @@ private slots:
     void on_add_harmonic_pushButton_clicked();
     void on_remove_harmonic_pushButton_clicked();
 
+    void update_charts();
+    void update_harmonics_buttons();
+    void update_ui();
+
 private:
     std::unique_ptr<Ui::MainWindow> _ui;
 
@@ -38,8 +42,6 @@ private:
     QChart* _freq_chart;
 
     void init_charts();
-    void update_charts();
-    void update_harmonics_buttons();
 
     std::vector<double> fft(std::vector<double> samples);
 };
