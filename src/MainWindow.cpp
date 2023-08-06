@@ -101,7 +101,6 @@ void MainWindow::update_charts() {
 }
 
 void MainWindow::update_harmonics_buttons() {
-    _ui->add_harmonic_pushButton->setDisabled(_waveforms.size() >= 6);
     _ui->remove_harmonic_pushButton->setDisabled(_waveforms.size() == 1);
 }
 
