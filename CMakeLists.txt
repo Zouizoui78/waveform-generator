@@ -4,8 +4,6 @@ set(PROJECT waveform-generator)
 set(VERSION 0.1)
 set(PRJ_VER ${PROJECT}-${VERSION})
 
-# --- Configuration ---
-
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
@@ -24,7 +22,16 @@ if (UNIX)
     add_compile_options(-DLINUX)
 endif (UNIX)
 
-# --- Project ---
+# vcpkg
+include(FetchContent)
+FetchContent_Declare(
+    vcpkg
+    GIT_REPOSITORY https://github.com/microsoft/vcpkg
+    GIT_TAG 2023.07.21
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/vcpkg
+)
+FetchContent_MakeAvailable(vcpkg)
+set(CMAKE_TOOLCHAIN_FILE "${vcpkg_SOURCE_DIR}/scripts/buildsystems/vcpkg.cmake" CACHE FILEPATH "")
 
 project(
     ${PROJECT}

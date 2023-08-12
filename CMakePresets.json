@@ -7,10 +7,7 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
             "installDir": "${sourceDir}/dist/${presetName}",
-            "architecture": { "value": "x64", "strategy": "external" },
-            "cacheVariables": {
-                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
-            }
+            "architecture": { "value": "x64", "strategy": "external" }
         },
         {
             "name": "debug",
@@ -46,6 +43,24 @@
             "cacheVariables": {
                 "CMAKE_WIN32_EXECUTABLE": true
             }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "debug",
+            "configurePreset": "debug"
+        },
+        {
+            "name": "release",
+            "configurePreset": "release"
+        },
+        {
+            "name": "debugwin",
+            "configurePreset": "debugwin"
+        },
+        {
+            "name": "releasewin",
+            "configurePreset": "releasewin"
         }
     ]
 }
