@@ -7,7 +7,10 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
             "installDir": "${sourceDir}/dist/${presetName}",
-            "architecture": { "value": "x64", "strategy": "external" }
+            "architecture": { "value": "x64", "strategy": "external" },
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": true
+            }
         },
         {
             "name": "debug",
