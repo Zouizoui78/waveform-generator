@@ -40,7 +40,8 @@ void MainWindow::on_play_pause_pushButton_clicked() {
 
 void MainWindow::on_add_harmonic_pushButton_clicked() {
     auto waveform = std::make_shared<tools::waveform::Sinus>();
-    waveform->set_frequency(440.0 * (2 * _waveforms.size() + 1));
+    double fundamental = _waveforms.front()->get_frequency();
+    waveform->set_frequency(fundamental * (2 * _waveforms.size() + 1));
     waveform->set_volume(1.0 / (2 * _waveforms.size() + 1));
 
     _waveforms.push_back(waveform);
@@ -57,17 +58,13 @@ void MainWindow::on_remove_harmonic_pushButton_clicked() {
 }
 
 void MainWindow::update_charts() {
-    int n_points = 
-        tools::waveform::sampling_rate /
-        _waveforms.front()->get_frequency();
-
     bool was_playing = _sound_player.is_playing();
     if (was_playing) {
         _sound_player.pause();
     }
 
     _waveform_generator->reset_samples();
-    auto samples = _waveform_generator->generate_n_samples(n_points);
+    auto samples = _waveform_generator->generate_n_samples(1000);
 
     if (was_playing) {
         _sound_player.play();
@@ -108,10 +105,14 @@ void MainWindow::init_charts() {
     _ui->charts_layout->addWidget(chart_view2);
 }
 
-void MainWindow::update_time_chart(std::vector<double> samples) {
+void MainWindow::update_time_chart(const std::vector<double>& samples) {
+    int n_points =
+        tools::waveform::sampling_rate /
+        _waveforms.front()->get_frequency();
+
     _time_chart->removeAllSeries();
     auto series = new QLineSeries;
-    series->append(samples_to_point_list(samples));
+    series->append(samples_to_point_list(samples.begin(), samples.begin() + n_points));
     
     _time_chart->addSeries(series);
     _time_chart->legend()->hide();
@@ -120,13 +121,14 @@ void MainWindow::update_time_chart(std::vector<double> samples) {
     _time_chart->axes()[0]->setMax(1.0 / _waveforms.front()->get_frequency());
 }
 
-void MainWindow::update_freq_chart(std::vector<double> samples) {
+void MainWindow::update_freq_chart(const std::vector<double>& samples) {
     _freq_chart->removeAllSeries();
     auto fft_output = fft(samples);
 
     auto series = new QLineSeries;
+    double fundamental = _waveforms.front()->get_frequency();
     for (int i = 0 ; i < fft_output.size() ; i++) {
-        double freq = 440 * i;
+        double freq = fundamental * i;
         series->append(freq, fft_output[i]);
     }
 
@@ -136,12 +138,16 @@ void MainWindow::update_freq_chart(std::vector<double> samples) {
 }
 
 void MainWindow::update_time_details_chart() {
+    int n_points =
+        tools::waveform::sampling_rate /
+        _waveforms.front()->get_frequency();
+
     _time_details_chart->removeAllSeries();
     for (const auto& sound : _waveforms) {
         tools::waveform::WaveformGenerator g;
         g.add_waveform(sound);
-        auto samples { g.generate_n_samples(100) };
-        auto points { samples_to_point_list(samples) };
+        auto samples { g.generate_n_samples(n_points) };
+        auto points { samples_to_point_list(samples.begin(), samples.end()) };
         auto series = new QLineSeries;
         series->append(points);
         _time_details_chart->addSeries(series);
@@ -150,19 +156,23 @@ void MainWindow::update_time_details_chart() {
     _time_details_chart->createDefaultAxes();
 }
 
-QList<QPointF> MainWindow::samples_to_point_list(std::vector<double> samples) {
+QList<QPointF> MainWindow::samples_to_point_list(
+    std::vector<double>::const_iterator begin,
+    std::vector<double>::const_iterator end
+) {
     QList<QPointF> points;
-    points.reserve(samples.size());
-    for (int i = 0 ; i < samples.size() ; i++) {
+    auto size { end - begin };
+    points.reserve(size);
+    for (int i = 0 ; i < size; i++) {
         points.emplace_back(
             static_cast<double>(i) / static_cast<double>(tools::waveform::sampling_rate),
-            samples[i]
+            *(begin + i)
         );
     }
     return points;
 }
 
-std::vector<double> MainWindow::fft(std::vector<double> samples) {
+std::vector<double> MainWindow::fft(const std::vector<double>& samples) {
     kiss_fftr_cfg cfg = kiss_fftr_alloc(samples.size(), 0, nullptr, nullptr);
     std::vector<float> samples_float;
     for (auto sample : samples) {

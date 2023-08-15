@@ -43,12 +43,15 @@ private:
     QChart* _time_details_chart;
 
     void init_charts();
-    void update_time_chart(std::vector<double> samples);
-    void update_freq_chart(std::vector<double> samples);
+    void update_time_chart(const std::vector<double>& samples);
+    void update_freq_chart(const std::vector<double>& samples);
     void update_time_details_chart();
-    QList<QPointF> samples_to_point_list(std::vector<double> samples);
+    QList<QPointF> samples_to_point_list(
+        std::vector<double>::const_iterator begin,
+        std::vector<double>::const_iterator end
+    );
 
-    std::vector<double> fft(std::vector<double> samples);
+    std::vector<double> fft(const std::vector<double>& samples);
 };
 
 #endif // MAINWINDOW_HPP
