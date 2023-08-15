@@ -40,8 +40,13 @@ private:
 
     QChart* _time_chart;
     QChart* _freq_chart;
+    QChart* _time_details_chart;
 
     void init_charts();
+    void update_time_chart(std::vector<double> samples);
+    void update_freq_chart(std::vector<double> samples);
+    void update_time_details_chart();
+    QList<QPointF> samples_to_point_list(std::vector<double> samples);
 
     std::vector<double> fft(std::vector<double> samples);
 };

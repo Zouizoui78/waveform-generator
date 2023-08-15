@@ -57,8 +57,9 @@ void MainWindow::on_remove_harmonic_pushButton_clicked() {
 }
 
 void MainWindow::update_charts() {
-    _time_chart->removeAllSeries();
-    _freq_chart->removeAllSeries();
+    int n_points = 
+        tools::waveform::sampling_rate /
+        _waveforms.front()->get_frequency();
 
     bool was_playing = _sound_player.is_playing();
     if (was_playing) {
@@ -66,43 +67,20 @@ void MainWindow::update_charts() {
     }
 
     _waveform_generator->reset_samples();
-    auto samples = _waveform_generator->generate_n_samples(100);
+    auto samples = _waveform_generator->generate_n_samples(n_points);
 
     if (was_playing) {
         _sound_player.play();
     }
 
-    auto fft_output = fft(samples);
-
-    auto series = new QLineSeries;
-    for (int i = 0 ; i < samples.size() ; i++) {
-        series->append(
-            static_cast<double>(i) / static_cast<double>(tools::waveform::sampling_rate),
-            samples[i]
-        );
-    }
-
-    auto series2 = new QLineSeries;
-    for (int i = 0 ; i < fft_output.size() ; i++) {
-        double freq = 440 * i;
-        series2->append(freq, fft_output[i]);
-    }
-
-    _time_chart->addSeries(series);
-    _time_chart->legend()->hide();
-    _time_chart->createDefaultAxes();
-    _time_chart->axes()[0]->setMin(0);
-    _time_chart->axes()[0]->setMax(1.0 / 440.0);
-
-    _freq_chart->addSeries(series2);
-    _freq_chart->legend()->hide();
-    _freq_chart->createDefaultAxes();
+    update_time_chart(samples);
+    update_freq_chart(samples);
+    update_time_details_chart();
 }
 
 void MainWindow::update_harmonics_groupbox() {
-    double next_harmonic_freq = _waveforms.front()->get_frequency() * (_waveforms.size() + 1);
-    _ui->add_harmonic_pushButton->setDisabled(next_harmonic_freq > tools::waveform::nyquist_frequency);
-    _ui->remove_harmonic_pushButton->setDisabled(_waveforms.size() == 1);
+    _ui->add_harmonic_pushButton->setDisabled(_waveforms.size() >= 10);
+    _ui->remove_harmonic_pushButton->setDisabled(_waveforms.size() <= 1);
     _ui->harmonics_count_label->setText(QString::number(_waveforms.size()));
 }
 
@@ -113,16 +91,75 @@ void MainWindow::update_ui() {
 
 void MainWindow::init_charts() {
     _time_chart = new QChart;
+    _time_details_chart = new QChart;
     _freq_chart = new QChart;
 
     auto chart_view = new QChartView(_time_chart, this);
     chart_view->setRenderHint(QPainter::Antialiasing);
 
+    auto time_detail_chart_view = new QChartView(_time_details_chart, this);
+    time_detail_chart_view->setRenderHint(QPainter::Antialiasing);
+
     auto chart_view2 = new QChartView(_freq_chart, this);
     chart_view2->setRenderHint(QPainter::Antialiasing);
 
-    _ui->charts_layout->addWidget(chart_view);
+    _ui->time_charts_layout->addWidget(chart_view);
+    _ui->time_charts_layout->addWidget(time_detail_chart_view);
     _ui->charts_layout->addWidget(chart_view2);
+}
+
+void MainWindow::update_time_chart(std::vector<double> samples) {
+    _time_chart->removeAllSeries();
+    auto series = new QLineSeries;
+    series->append(samples_to_point_list(samples));
+    
+    _time_chart->addSeries(series);
+    _time_chart->legend()->hide();
+    _time_chart->createDefaultAxes();
+    _time_chart->axes()[0]->setMin(0);
+    _time_chart->axes()[0]->setMax(1.0 / _waveforms.front()->get_frequency());
+}
+
+void MainWindow::update_freq_chart(std::vector<double> samples) {
+    _freq_chart->removeAllSeries();
+    auto fft_output = fft(samples);
+
+    auto series = new QLineSeries;
+    for (int i = 0 ; i < fft_output.size() ; i++) {
+        double freq = 440 * i;
+        series->append(freq, fft_output[i]);
+    }
+
+    _freq_chart->addSeries(series);
+    _freq_chart->legend()->hide();
+    _freq_chart->createDefaultAxes();
+}
+
+void MainWindow::update_time_details_chart() {
+    _time_details_chart->removeAllSeries();
+    for (const auto& sound : _waveforms) {
+        tools::waveform::WaveformGenerator g;
+        g.add_waveform(sound);
+        auto samples { g.generate_n_samples(100) };
+        auto points { samples_to_point_list(samples) };
+        auto series = new QLineSeries;
+        series->append(points);
+        _time_details_chart->addSeries(series);
+    }
+    _time_details_chart->legend()->hide();
+    _time_details_chart->createDefaultAxes();
+}
+
+QList<QPointF> MainWindow::samples_to_point_list(std::vector<double> samples) {
+    QList<QPointF> points;
+    points.reserve(samples.size());
+    for (int i = 0 ; i < samples.size() ; i++) {
+        points.emplace_back(
+            static_cast<double>(i) / static_cast<double>(tools::waveform::sampling_rate),
+            samples[i]
+        );
+    }
+    return points;
 }
 
 std::vector<double> MainWindow::fft(std::vector<double> samples) {
