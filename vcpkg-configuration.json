@@ -2,7 +2,7 @@
   "registries": [
     {
       "kind": "git",
-      "baseline": "ed58bf16e1838671e8ae20522756725b92e1fd75",
+      "baseline": "f8ea042195706a8c9dd4a6aba820afc45f74d2f0",
       "repository": "https://git.zouizoui.ovh/zoui/vcpkg-registry",
       "packages": [
         "tools"

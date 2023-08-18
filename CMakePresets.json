@@ -9,18 +9,19 @@
             "installDir": "${sourceDir}/dist/${presetName}",
             "architecture": { "value": "x64", "strategy": "external" },
             "cacheVariables": {
-                "CMAKE_EXPORT_COMPILE_COMMANDS": true
+                "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+                "CMAKE_INTERPROCEDURAL_OPTIMIZATION": true
             }
         },
         {
-            "name": "debug",
+            "name": "dbg",
             "inherits": ["base"],
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
-            "name": "release",
+            "name": "rel",
             "inherits": ["base"],
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
@@ -37,12 +38,12 @@
             }
         },
         {
-            "name": "debugwin",
-            "inherits": ["basewin", "debug"]
+            "name": "dbgwin",
+            "inherits": ["basewin", "dbg"]
         },
         {
-            "name": "releasewin",
-            "inherits": ["basewin", "release"],
+            "name": "relwin",
+            "inherits": ["basewin", "rel"],
             "cacheVariables": {
                 "CMAKE_WIN32_EXECUTABLE": true
             }
@@ -50,20 +51,20 @@
     ],
     "buildPresets": [
         {
-            "name": "debug",
-            "configurePreset": "debug"
+            "name": "dbg",
+            "configurePreset": "dbg"
         },
         {
-            "name": "release",
-            "configurePreset": "release"
+            "name": "rel",
+            "configurePreset": "rel"
         },
         {
-            "name": "debugwin",
-            "configurePreset": "debugwin"
+            "name": "dbgwin",
+            "configurePreset": "dbgwin"
         },
         {
-            "name": "releasewin",
-            "configurePreset": "releasewin"
+            "name": "relwin",
+            "configurePreset": "relwin"
         }
     ]
 }

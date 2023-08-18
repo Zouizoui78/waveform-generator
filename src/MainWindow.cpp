@@ -30,6 +30,7 @@ MainWindow::~MainWindow() {}
 void MainWindow::on_play_pause_pushButton_clicked() {
     if (_sound_player.is_playing()) {
         _sound_player.pause();
+        _waveform_generator->reset_sample_index();
         _ui->play_pause_pushButton->setText("Play");
     }
     else {
@@ -63,8 +64,10 @@ void MainWindow::update_charts() {
         _sound_player.pause();
     }
 
-    _waveform_generator->reset_samples();
+    int64_t sample_index = _waveform_generator->get_sample_index();
+    _waveform_generator->reset_sample_index();
     auto samples = _waveform_generator->generate_n_samples(1000);
+    _waveform_generator->set_sample_index(sample_index);
 
     if (was_playing) {
         _sound_player.play();
