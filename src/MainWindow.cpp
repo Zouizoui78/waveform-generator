@@ -3,7 +3,6 @@
 
 #include "QChartView"
 #include "QLineSeries"
-#include "QValueAxis"
 
 #include "kissfft/kiss_fftr.h"
 
@@ -118,9 +117,8 @@ void MainWindow::update_time_chart(const std::vector<double>& samples) {
     series->append(samples_to_point_list(samples.begin(), samples.begin() + n_points));
     
     _time_chart->addSeries(series);
-    _time_chart->legend()->hide();
-    _time_chart->createDefaultAxes();
-    _time_chart->axes()[0]->setMax(1.0 / _waveforms.front()->get_frequency());
+    auto axes { set_chart_defaults(_time_chart, "Time (s)", "Volume") };
+    axes.first->setMax(1.0 / _waveforms.front()->get_frequency());
 }
 
 void MainWindow::update_freq_chart(const std::vector<double>& samples) {
@@ -138,13 +136,10 @@ void MainWindow::update_freq_chart(const std::vector<double>& samples) {
     }
 
     _freq_chart->addSeries(series);
-    _freq_chart->legend()->hide();
-    _freq_chart->createDefaultAxes();
-
-    QValueAxis *x = static_cast<QValueAxis *>(_freq_chart->axes()[0]);
-    x->setTickType(QValueAxis::TickType::TicksDynamic);
-    x->setTickInterval(_waveforms.front()->get_frequency());
-    x->setMax(20 * _waveforms.front()->get_frequency());
+    auto axes { set_chart_defaults(_freq_chart, "Frequency (Hz)", "Volume") };
+    axes.first->setTickType(QValueAxis::TickType::TicksDynamic);
+    axes.first->setTickInterval(_waveforms.front()->get_frequency());
+    axes.first->setMax(20 * _waveforms.front()->get_frequency());
 }
 
 void MainWindow::update_time_details_chart() {
@@ -162,8 +157,7 @@ void MainWindow::update_time_details_chart() {
         series->append(points);
         _time_details_chart->addSeries(series);
     }
-    _time_details_chart->legend()->hide();
-    _time_details_chart->createDefaultAxes();
+    set_chart_defaults(_time_details_chart, "Time (s)", "Volume");
 }
 
 QList<QPointF> MainWindow::samples_to_point_list(
@@ -180,6 +174,26 @@ QList<QPointF> MainWindow::samples_to_point_list(
         );
     }
     return points;
+}
+
+std::pair<QValueAxis *, QValueAxis *>
+MainWindow::set_chart_defaults(
+    QChart *chart,
+    const std::string &x_axis_name,
+    const std::string &y_axis_name
+) {
+    chart->legend()->hide();
+    chart->createDefaultAxes();
+
+    auto axes { chart->axes() };
+    QValueAxis *x = static_cast<QValueAxis *>(chart->axes()[0]);
+    QValueAxis *y = static_cast<QValueAxis *>(chart->axes()[1]);
+
+    x->setTitleText(QString::fromStdString(x_axis_name));
+    y->setTitleText(QString::fromStdString(y_axis_name));
+
+    std::pair<QValueAxis *, QValueAxis *> ret {x, y };
+    return ret;
 }
 
 std::vector<double> MainWindow::fft(const std::vector<double>& samples) {
