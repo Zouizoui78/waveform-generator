@@ -3,9 +3,9 @@
 
 #include "QChartView"
 #include "QLineSeries"
+#include "QValueAxis"
 
 #include "kissfft/kiss_fftr.h"
-#include "spdlog/spdlog.h"
 
 #include "tools/waveform/Constants.hpp"
 #include "tools/waveform/Waveforms.hpp"
@@ -120,7 +120,6 @@ void MainWindow::update_time_chart(const std::vector<double>& samples) {
     _time_chart->addSeries(series);
     _time_chart->legend()->hide();
     _time_chart->createDefaultAxes();
-    _time_chart->axes()[0]->setMin(0);
     _time_chart->axes()[0]->setMax(1.0 / _waveforms.front()->get_frequency());
 }
 
@@ -130,14 +129,22 @@ void MainWindow::update_freq_chart(const std::vector<double>& samples) {
 
     auto series = new QLineSeries;
     double fundamental = _waveforms.front()->get_frequency();
+    double freq_mult =
+        static_cast<double>(tools::waveform::sampling_rate) /
+        samples.size();
     for (int i = 0 ; i < fft_output.size() ; i++) {
-        double freq = fundamental * i;
+        double freq = i * freq_mult;
         series->append(freq, fft_output[i]);
     }
 
     _freq_chart->addSeries(series);
     _freq_chart->legend()->hide();
     _freq_chart->createDefaultAxes();
+
+    QValueAxis *x = static_cast<QValueAxis *>(_freq_chart->axes()[0]);
+    x->setTickType(QValueAxis::TickType::TicksDynamic);
+    x->setTickInterval(_waveforms.front()->get_frequency());
+    x->setMax(20 * _waveforms.front()->get_frequency());
 }
 
 void MainWindow::update_time_details_chart() {
