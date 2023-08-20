@@ -50,7 +50,7 @@ private:
     QList<QPointF> samples_to_point_list(
         std::vector<double>::const_iterator begin,
         std::vector<double>::const_iterator end
-    );
+    ) const;
 
     // Hide legend, create default axes and set axes names.
     // Return a pair containing the two axes.
@@ -61,7 +61,7 @@ private:
         const std::string &y_axis_name
     );
 
-    std::vector<double> fft(const std::vector<double>& samples);
+    std::vector<double> fft(const std::vector<double>& samples) const;
 };
 
 #endif // MAINWINDOW_HPP

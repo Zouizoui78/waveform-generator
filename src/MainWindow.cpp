@@ -163,7 +163,7 @@ void MainWindow::update_time_details_chart() {
 QList<QPointF> MainWindow::samples_to_point_list(
     std::vector<double>::const_iterator begin,
     std::vector<double>::const_iterator end
-) {
+) const {
     QList<QPointF> points;
     auto size { end - begin };
     points.reserve(size);
@@ -196,7 +196,7 @@ MainWindow::set_chart_defaults(
     return ret;
 }
 
-std::vector<double> MainWindow::fft(const std::vector<double>& samples) {
+std::vector<double> MainWindow::fft(const std::vector<double>& samples) const {
     kiss_fftr_cfg cfg = kiss_fftr_alloc(samples.size(), 0, nullptr, nullptr);
     std::vector<float> samples_float;
     for (auto sample : samples) {

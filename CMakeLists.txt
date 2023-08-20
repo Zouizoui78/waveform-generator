@@ -62,8 +62,10 @@ target_link_libraries(
     PRIVATE spdlog::spdlog
 )
 
-# Needed for clangd
-add_custom_command(
-    TARGET ${PROJECT}
-    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
-)
+if (UNIX)
+    # Needed for clangd
+    add_custom_command(
+        TARGET ${PROJECT}
+        COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
+    )
+endif (UNIX)
