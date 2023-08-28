@@ -2,6 +2,6 @@
 
 ## Build
 
-    # preset = releasewin on Windows
-    cmake --preset=release
-    cmake --build --preset=release
+    # preset = relwin on Windows
+    cmake --preset=rel
+    cmake --build --preset=rel
