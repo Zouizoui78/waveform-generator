@@ -1,10 +1,8 @@
 cmake_minimum_required(VERSION 3.17)
 
-set(PROJECT waveform-generator)
 set(VERSION 0.1)
-set(PRJ_VER ${PROJECT}-${VERSION})
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Qt variables
@@ -12,29 +10,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOUIC_SEARCH_PATHS src)
 
-add_compile_options($<$<CONFIG:Debug>:-DDEBUG>$<$<CONFIG:Release>:-DRELEASE>)
-
-if (WIN32)
-    add_compile_options(-DWINDOWS)
-endif (WIN32)
-
-if (UNIX)
-    add_compile_options(-DLINUX)
-endif (UNIX)
-
-# vcpkg
-include(FetchContent)
-FetchContent_Declare(
-    vcpkg
-    GIT_REPOSITORY https://github.com/microsoft/vcpkg
-    GIT_TAG 2023.07.21
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/vcpkg
-)
-FetchContent_MakeAvailable(vcpkg)
-set(CMAKE_TOOLCHAIN_FILE "${vcpkg_SOURCE_DIR}/scripts/buildsystems/vcpkg.cmake" CACHE FILEPATH "")
-
 project(
-    ${PROJECT}
+    waveform-generator
     VERSION ${VERSION}
     LANGUAGES CXX
 )
@@ -43,29 +20,41 @@ set(
     SRC
     src/main.cpp
     src/MainWindow.cpp
+    src/sdl_audio_device.cpp
+    src/waveform_player.cpp
     src/MainWindow.ui
 )
 
-add_executable(${PROJECT} ${SRC})
+add_executable(${PROJECT_NAME} ${SRC})
 
-find_package(kissfft CONFIG REQUIRED)
-find_package(spdlog CONFIG REQUIRED)
-find_package(tools CONFIG REQUIRED)
-find_package(Qt6 REQUIRED COMPONENTS Charts Widgets)
-
-target_link_libraries(
-    ${PROJECT}
-    PRIVATE kissfft::kissfft-float
-    PRIVATE Qt::Charts
-    PRIVATE Qt::Widgets
-    PRIVATE tools-sdl
-    PRIVATE spdlog::spdlog
+include(FetchContent)
+FetchContent_Declare(
+  kissfft
+  GIT_REPOSITORY https://github.com/mborgerding/kissfft
+  GIT_TAG 8f47a67f595a6641c566087bf5277034be64f24d
+)
+FetchContent_Declare(
+  tools
+  GIT_REPOSITORY https://github.com/Zouizoui78/tools
+  GIT_TAG ef4dbe15eb764df80449aa3499a50989d57e1a0d
 )
 
-if (UNIX)
-    # Needed for clangd
-    add_custom_command(
-        TARGET ${PROJECT}
-        COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
-    )
-endif (UNIX)
+# 'CACHE INTERNAL ""' forces the value
+set(KISSFFT_DATATYPE double CACHE INTERNAL "")
+set(KISSFFT_TOOLS OFF CACHE INTERNAL "")
+set(KISSFFT_TEST OFF CACHE INTERNAL "")
+set(KISSFFT_STATIC ON CACHE INTERNAL "")
+FetchContent_MakeAvailable(kissfft tools)
+
+find_package(Qt6 COMPONENTS Core Charts Widgets CONFIG REQUIRED)
+
+target_link_libraries(
+    ${PROJECT_NAME}
+    PRIVATE fmt
+    PRIVATE kissfft
+    PRIVATE Qt6::Charts
+    PRIVATE Qt6::Widgets
+    PRIVATE tools-waveform
+    PRIVATE SDL2
+    PRIVATE spdlog
+)

@@ -5,9 +5,9 @@
 #include "QMainWindow"
 #include "QValueAxis"
 
-#include "tools/sdl/WaveformPlayer.hpp"
-#include "tools/waveform/WaveformGenerator.hpp"
-#include "tools/waveform/AWaveform.hpp"
+#include "waveform_player.hpp"
+#include "tools/waveform/waveform_generator.hpp"
+#include "tools/waveform/waveform_base.hpp"
 
 #undef main
 
@@ -35,9 +35,8 @@ private slots:
 private:
     std::unique_ptr<Ui::MainWindow> _ui;
 
-    std::shared_ptr<tools::waveform::WaveformGenerator> _waveform_generator;
-    tools::sdl::WaveformPlayer _sound_player;
-    std::vector<std::shared_ptr<tools::waveform::AWaveform>> _waveforms;
+    waveform_generator::WaveformPlayer _sound_player;
+    std::vector<std::unique_ptr<tools::waveform::WaveformBase>> _waveforms;
 
     QChart* _time_chart;
     QChart* _freq_chart;
@@ -62,6 +61,7 @@ private:
     );
 
     std::vector<double> fft(const std::vector<double>& samples) const;
+
 };
 
 #endif // MAINWINDOW_HPP

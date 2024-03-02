@@ -4,21 +4,21 @@
 #include "QChartView"
 #include "QLineSeries"
 
-#include "kissfft/kiss_fftr.h"
+#include "kiss_fftr.h"
 
-#include "tools/waveform/Constants.hpp"
-#include "tools/waveform/Waveforms.hpp"
+#include "tools/waveform/constants.hpp"
+#include "tools/waveform/waveforms.hpp"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     _ui(std::make_unique<Ui::MainWindow>()),
-    _waveform_generator(std::make_shared<tools::waveform::WaveformGenerator>()),
-    _sound_player(_waveform_generator)
+    _sound_player()
 {
     _ui->setupUi(this);
 
-    _waveforms.emplace_back(std::make_shared<tools::waveform::Sinus>());
-    _waveform_generator->add_waveform(_waveforms.back());
+    _waveforms.emplace_back(std::make_unique<tools::waveform::Sinus>());
+    _waveforms.back().get()->set_frequency(440);
+    _sound_player.add_waveform(_waveforms.back().get());
 
     init_charts();
     update_ui();
@@ -27,46 +27,48 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow() {}
 
 void MainWindow::on_play_pause_pushButton_clicked() {
-    if (_sound_player.is_playing()) {
-        _sound_player.pause();
-        _waveform_generator->reset_sample_index();
-        _ui->play_pause_pushButton->setText("Play");
-    }
-    else {
+    if (_sound_player.is_paused()) {
         _sound_player.play();
         _ui->play_pause_pushButton->setText("Pause");
+    }
+    else {
+        _sound_player.pause();
+        _sound_player.get_generator().reset_sample_index();
+        _ui->play_pause_pushButton->setText("Play");
     }
 }
 
 void MainWindow::on_add_harmonic_pushButton_clicked() {
-    auto waveform = std::make_shared<tools::waveform::Sinus>();
-    double fundamental = _waveforms.front()->get_frequency();
-    waveform->set_frequency(fundamental * (2 * _waveforms.size() + 1));
-    waveform->set_volume(1.0 / (2 * _waveforms.size() + 1));
+    _waveforms.emplace_back(std::make_unique<tools::waveform::Sinus>());
+    auto waveform = _waveforms.back().get();
 
-    _waveforms.push_back(waveform);
-    _waveform_generator->add_waveform(_waveforms.back());
+    int harmonic_index = 2 * _waveforms.size() - 1;
+    double fundamental = _waveforms.front()->get_frequency();
+    waveform->set_frequency(fundamental * harmonic_index);
+    waveform->set_volume(1.0 / harmonic_index);
+
+    _sound_player.get_generator().add_waveform(_waveforms.back().get());
 
     update_ui();
 }
 
 void MainWindow::on_remove_harmonic_pushButton_clicked() {
-    _waveform_generator->remove_waveform(_waveforms.back());
+    _sound_player.get_generator().remove_waveform(_waveforms.back().get());
     _waveforms.pop_back();
 
     update_ui();
 }
 
 void MainWindow::update_charts() {
-    bool was_playing = _sound_player.is_playing();
+    bool was_playing = !_sound_player.is_paused();
     if (was_playing) {
         _sound_player.pause();
     }
 
-    int64_t sample_index = _waveform_generator->get_sample_index();
-    _waveform_generator->reset_sample_index();
-    auto samples = _waveform_generator->generate_n_samples(1000);
-    _waveform_generator->set_sample_index(sample_index);
+    int64_t sample_index = _sound_player.get_generator().get_sample_index();
+    _sound_player.get_generator().reset_sample_index();
+    auto samples = _sound_player.get_generator().generate_n_samples(10000);
+    _sound_player.get_generator().set_sample_index(sample_index);
 
     if (was_playing) {
         _sound_player.play();
@@ -109,16 +111,16 @@ void MainWindow::init_charts() {
 
 void MainWindow::update_time_chart(const std::vector<double>& samples) {
     int n_points =
-        tools::waveform::sampling_rate /
-        _waveforms.front()->get_frequency();
+        tools::waveform::constants::sampling_rate /
+        _waveforms.front()->get_frequency() * 2;
 
     _time_chart->removeAllSeries();
     auto series = new QLineSeries;
     series->append(samples_to_point_list(samples.begin(), samples.begin() + n_points));
-    
+
     _time_chart->addSeries(series);
     auto axes { set_chart_defaults(_time_chart, "Time (s)", "Volume") };
-    axes.first->setMax(1.0 / _waveforms.front()->get_frequency());
+    axes.first->setMax(1.0 / _waveforms.front()->get_frequency() * 2);
 }
 
 void MainWindow::update_freq_chart(const std::vector<double>& samples) {
@@ -128,7 +130,7 @@ void MainWindow::update_freq_chart(const std::vector<double>& samples) {
     auto series = new QLineSeries;
     double fundamental = _waveforms.front()->get_frequency();
     double freq_mult =
-        static_cast<double>(tools::waveform::sampling_rate) /
+        static_cast<double>(tools::waveform::constants::sampling_rate) /
         samples.size();
     for (int i = 0 ; i < fft_output.size() ; i++) {
         double freq = i * freq_mult;
@@ -144,13 +146,13 @@ void MainWindow::update_freq_chart(const std::vector<double>& samples) {
 
 void MainWindow::update_time_details_chart() {
     int n_points =
-        tools::waveform::sampling_rate /
+        tools::waveform::constants::sampling_rate /
         _waveforms.front()->get_frequency();
 
     _time_details_chart->removeAllSeries();
     for (const auto& sound : _waveforms) {
         tools::waveform::WaveformGenerator g;
-        g.add_waveform(sound);
+        g.add_waveform(sound.get());
         auto samples { g.generate_n_samples(n_points) };
         auto points { samples_to_point_list(samples.begin(), samples.end()) };
         auto series = new QLineSeries;
@@ -169,7 +171,7 @@ QList<QPointF> MainWindow::samples_to_point_list(
     points.reserve(size);
     for (int i = 0 ; i < size; i++) {
         points.emplace_back(
-            static_cast<double>(i) / static_cast<double>(tools::waveform::sampling_rate),
+            static_cast<double>(i) / static_cast<double>(tools::waveform::constants::sampling_rate),
             *(begin + i)
         );
     }
@@ -198,17 +200,14 @@ MainWindow::set_chart_defaults(
 
 std::vector<double> MainWindow::fft(const std::vector<double>& samples) const {
     kiss_fftr_cfg cfg = kiss_fftr_alloc(samples.size(), 0, nullptr, nullptr);
-    std::vector<float> samples_float;
-    for (auto sample : samples) {
-        samples_float.push_back(sample);
-    }
 
     size_t size = samples.size() / 2 + 1;
     kiss_fft_cpx *fft_output = new kiss_fft_cpx[size];
 
-    kiss_fftr(cfg, samples_float.data(), fft_output);
+    kiss_fftr(cfg, samples.data(), fft_output);
 
     std::vector<double> ret;
+    ret.reserve(size);
     for (int i = 0 ; i < size ; i++) {
         ret.push_back(sqrt(pow(fft_output[i].r, 2) + pow(fft_output[i].i, 2)));
     }
