@@ -42,6 +42,9 @@ private:
     QChart* _freq_chart;
     QChart* _time_details_chart;
 
+    void play();
+    void pause();
+
     void init_charts();
     void update_time_chart(const std::vector<double>& samples);
     void update_freq_chart(const std::vector<double>& samples);

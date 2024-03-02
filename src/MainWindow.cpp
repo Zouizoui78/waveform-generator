@@ -9,11 +9,9 @@
 #include "tools/waveform/constants.hpp"
 #include "tools/waveform/waveforms.hpp"
 
-MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
-    _ui(std::make_unique<Ui::MainWindow>()),
-    _sound_player()
-{
+MainWindow::MainWindow(QWidget* parent)
+    : QMainWindow(parent), _ui(std::make_unique<Ui::MainWindow>()),
+      _sound_player() {
     _ui->setupUi(this);
 
     _waveforms.emplace_back(std::make_unique<tools::waveform::Sinus>());
@@ -28,13 +26,9 @@ MainWindow::~MainWindow() {}
 
 void MainWindow::on_play_pause_pushButton_clicked() {
     if (_sound_player.is_paused()) {
-        _sound_player.play();
-        _ui->play_pause_pushButton->setText("Pause");
-    }
-    else {
-        _sound_player.pause();
-        _sound_player.get_generator().reset_sample_index();
-        _ui->play_pause_pushButton->setText("Play");
+        play();
+    } else {
+        pause();
     }
 }
 
@@ -42,10 +36,10 @@ void MainWindow::on_add_harmonic_pushButton_clicked() {
     _waveforms.emplace_back(std::make_unique<tools::waveform::Sinus>());
     auto waveform = _waveforms.back().get();
 
-    int harmonic_index = 2 * _waveforms.size() - 1;
+    int mode = 2 * _waveforms.size() - 1;
     double fundamental = _waveforms.front()->get_frequency();
-    waveform->set_frequency(fundamental * harmonic_index);
-    waveform->set_volume(1.0 / harmonic_index);
+    waveform->set_frequency(fundamental * mode);
+    waveform->set_volume(1.0 / mode);
 
     _sound_player.get_generator().add_waveform(_waveforms.back().get());
 
@@ -90,6 +84,17 @@ void MainWindow::update_ui() {
     update_harmonics_groupbox();
 }
 
+void MainWindow::play() {
+    _sound_player.play();
+    _ui->play_pause_pushButton->setText("Pause");
+}
+
+void MainWindow::pause() {
+    _sound_player.pause();
+    _sound_player.get_generator().reset_sample_index();
+    _ui->play_pause_pushButton->setText("Play");
+}
+
 void MainWindow::init_charts() {
     _time_chart = new QChart;
     _time_details_chart = new QChart;
@@ -110,16 +115,16 @@ void MainWindow::init_charts() {
 }
 
 void MainWindow::update_time_chart(const std::vector<double>& samples) {
-    int n_points =
-        tools::waveform::constants::sampling_rate /
-        _waveforms.front()->get_frequency() * 2;
+    int n_points = tools::waveform::constants::sampling_rate /
+                   _waveforms.front()->get_frequency() * 2;
 
     _time_chart->removeAllSeries();
     auto series = new QLineSeries;
-    series->append(samples_to_point_list(samples.begin(), samples.begin() + n_points));
+    series->append(
+        samples_to_point_list(samples.begin(), samples.begin() + n_points));
 
     _time_chart->addSeries(series);
-    auto axes { set_chart_defaults(_time_chart, "Time (s)", "Volume") };
+    auto axes{set_chart_defaults(_time_chart, "Time (s)", "Volume")};
     axes.first->setMax(1.0 / _waveforms.front()->get_frequency() * 2);
 }
 
@@ -132,29 +137,28 @@ void MainWindow::update_freq_chart(const std::vector<double>& samples) {
     double freq_mult =
         static_cast<double>(tools::waveform::constants::sampling_rate) /
         samples.size();
-    for (int i = 0 ; i < fft_output.size() ; i++) {
+    for (int i = 0; i < fft_output.size(); i++) {
         double freq = i * freq_mult;
         series->append(freq, fft_output[i]);
     }
 
     _freq_chart->addSeries(series);
-    auto axes { set_chart_defaults(_freq_chart, "Frequency (Hz)", "Volume") };
+    auto axes{set_chart_defaults(_freq_chart, "Frequency (Hz)", "Volume")};
     axes.first->setTickType(QValueAxis::TickType::TicksDynamic);
     axes.first->setTickInterval(_waveforms.front()->get_frequency());
     axes.first->setMax(20 * _waveforms.front()->get_frequency());
 }
 
 void MainWindow::update_time_details_chart() {
-    int n_points =
-        tools::waveform::constants::sampling_rate /
-        _waveforms.front()->get_frequency();
+    int n_points = tools::waveform::constants::sampling_rate /
+                   _waveforms.front()->get_frequency();
 
     _time_details_chart->removeAllSeries();
     for (const auto& sound : _waveforms) {
         tools::waveform::WaveformGenerator g;
         g.add_waveform(sound.get());
-        auto samples { g.generate_n_samples(n_points) };
-        auto points { samples_to_point_list(samples.begin(), samples.end()) };
+        auto samples{g.generate_n_samples(n_points)};
+        auto points{samples_to_point_list(samples.begin(), samples.end())};
         auto series = new QLineSeries;
         series->append(points);
         _time_details_chart->addSeries(series);
@@ -164,37 +168,33 @@ void MainWindow::update_time_details_chart() {
 
 QList<QPointF> MainWindow::samples_to_point_list(
     std::vector<double>::const_iterator begin,
-    std::vector<double>::const_iterator end
-) const {
+    std::vector<double>::const_iterator end) const {
     QList<QPointF> points;
-    auto size { end - begin };
+    auto size{end - begin};
     points.reserve(size);
-    for (int i = 0 ; i < size; i++) {
+    for (int i = 0; i < size; i++) {
         points.emplace_back(
-            static_cast<double>(i) / static_cast<double>(tools::waveform::constants::sampling_rate),
-            *(begin + i)
-        );
+            static_cast<double>(i) /
+                static_cast<double>(tools::waveform::constants::sampling_rate),
+            *(begin + i));
     }
     return points;
 }
 
-std::pair<QValueAxis *, QValueAxis *>
-MainWindow::set_chart_defaults(
-    QChart *chart,
-    const std::string &x_axis_name,
-    const std::string &y_axis_name
-) {
+std::pair<QValueAxis*, QValueAxis*>
+MainWindow::set_chart_defaults(QChart* chart, const std::string& x_axis_name,
+                               const std::string& y_axis_name) {
     chart->legend()->hide();
     chart->createDefaultAxes();
 
-    auto axes { chart->axes() };
-    QValueAxis *x = static_cast<QValueAxis *>(chart->axes()[0]);
-    QValueAxis *y = static_cast<QValueAxis *>(chart->axes()[1]);
+    auto axes{chart->axes()};
+    QValueAxis* x = static_cast<QValueAxis*>(chart->axes()[0]);
+    QValueAxis* y = static_cast<QValueAxis*>(chart->axes()[1]);
 
     x->setTitleText(QString::fromStdString(x_axis_name));
     y->setTitleText(QString::fromStdString(y_axis_name));
 
-    std::pair<QValueAxis *, QValueAxis *> ret {x, y };
+    std::pair<QValueAxis*, QValueAxis*> ret{x, y};
     return ret;
 }
 
@@ -202,13 +202,13 @@ std::vector<double> MainWindow::fft(const std::vector<double>& samples) const {
     kiss_fftr_cfg cfg = kiss_fftr_alloc(samples.size(), 0, nullptr, nullptr);
 
     size_t size = samples.size() / 2 + 1;
-    kiss_fft_cpx *fft_output = new kiss_fft_cpx[size];
+    kiss_fft_cpx* fft_output = new kiss_fft_cpx[size];
 
     kiss_fftr(cfg, samples.data(), fft_output);
 
     std::vector<double> ret;
     ret.reserve(size);
-    for (int i = 0 ; i < size ; i++) {
+    for (int i = 0; i < size; i++) {
         ret.push_back(sqrt(pow(fft_output[i].r, 2) + pow(fft_output[i].i, 2)));
     }
 
