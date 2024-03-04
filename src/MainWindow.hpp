@@ -5,22 +5,21 @@
 #include "QMainWindow"
 #include "QValueAxis"
 
-#include "waveform_player.hpp"
-#include "tools/waveform/waveform_generator.hpp"
 #include "tools/waveform/waveform_base.hpp"
+#include "tools/waveform/waveform_generator.hpp"
+#include "waveform_player.hpp"
 
 #undef main
 
 namespace Ui {
-    class MainWindow;
+class MainWindow;
 }
 
-class MainWindow : public QMainWindow
-{
+class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    MainWindow(QWidget* parent = nullptr);
     virtual ~MainWindow();
 
 private slots:
@@ -49,22 +48,18 @@ private:
     void update_time_chart(const std::vector<double>& samples);
     void update_freq_chart(const std::vector<double>& samples);
     void update_time_details_chart();
-    QList<QPointF> samples_to_point_list(
-        std::vector<double>::const_iterator begin,
-        std::vector<double>::const_iterator end
-    ) const;
+
+    QList<QPointF>
+    samples_to_point_list(std::vector<double>::const_iterator begin,
+                          std::vector<double>::const_iterator end) const;
 
     // Hide legend, create default axes and set axes names.
     // Return a pair containing the two axes.
-    std::pair<QValueAxis *, QValueAxis *>
-    set_chart_defaults(
-        QChart *chart,
-        const std::string &x_axis_name,
-        const std::string &y_axis_name
-    );
+    std::pair<QValueAxis*, QValueAxis*>
+    set_chart_defaults(QChart* chart, const std::string& x_axis_name,
+                       const std::string& y_axis_name);
 
     std::vector<double> fft(const std::vector<double>& samples) const;
-
 };
 
 #endif // MAINWINDOW_HPP

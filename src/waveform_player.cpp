@@ -5,8 +5,7 @@ namespace waveform_generator {
 
 WaveformPlayer::WaveformPlayer()
     : _audio_device(std::make_unique<SDLAudioDevice>(
-          std::bind_front(&WaveformPlayer::sdl_callback, this)))
-{}
+          std::bind_front(&WaveformPlayer::sdl_callback, this))) {}
 
 bool WaveformPlayer::add_waveform(
     const tools::waveform::WaveformBase* waveform) {

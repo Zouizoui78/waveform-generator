@@ -1,10 +1,9 @@
 #include "MainWindow.hpp"
+#include "kissfft_wrapper.hpp"
 #include "ui_MainWindow.h"
 
 #include "QChartView"
 #include "QLineSeries"
-
-#include "kiss_fftr.h"
 
 #include "tools/waveform/constants.hpp"
 #include "tools/waveform/waveforms.hpp"
@@ -36,10 +35,12 @@ void MainWindow::on_add_harmonic_pushButton_clicked() {
     _waveforms.emplace_back(std::make_unique<tools::waveform::Sinus>());
     auto waveform = _waveforms.back().get();
 
+    int harmoc_index = _waveforms.size() - 1;
     int mode = 2 * _waveforms.size() - 1;
     double fundamental = _waveforms.front()->get_frequency();
     waveform->set_frequency(fundamental * mode);
     waveform->set_volume(1.0 / mode);
+    // waveform->set_volume(pow(-1.0, harmoc_index) * pow(mode, -2.0));
 
     _sound_player.get_generator().add_waveform(_waveforms.back().get());
 
@@ -130,10 +131,9 @@ void MainWindow::update_time_chart(const std::vector<double>& samples) {
 
 void MainWindow::update_freq_chart(const std::vector<double>& samples) {
     _freq_chart->removeAllSeries();
-    auto fft_output = fft(samples);
+    auto fft_output = kissfft::fft(samples);
 
     auto series = new QLineSeries;
-    double fundamental = _waveforms.front()->get_frequency();
     double freq_mult =
         static_cast<double>(tools::waveform::constants::sampling_rate) /
         samples.size();
@@ -195,24 +195,5 @@ MainWindow::set_chart_defaults(QChart* chart, const std::string& x_axis_name,
     y->setTitleText(QString::fromStdString(y_axis_name));
 
     std::pair<QValueAxis*, QValueAxis*> ret{x, y};
-    return ret;
-}
-
-std::vector<double> MainWindow::fft(const std::vector<double>& samples) const {
-    kiss_fftr_cfg cfg = kiss_fftr_alloc(samples.size(), 0, nullptr, nullptr);
-
-    size_t size = samples.size() / 2 + 1;
-    kiss_fft_cpx* fft_output = new kiss_fft_cpx[size];
-
-    kiss_fftr(cfg, samples.data(), fft_output);
-
-    std::vector<double> ret;
-    ret.reserve(size);
-    for (int i = 0; i < size; i++) {
-        ret.push_back(sqrt(pow(fft_output[i].r, 2) + pow(fft_output[i].i, 2)));
-    }
-
-    free(cfg);
-    delete[] fft_output;
     return ret;
 }
